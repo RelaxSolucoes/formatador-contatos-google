@@ -1,6 +1,6 @@
 # 📱 Formatador de Contatos Google + Validação WhatsApp
 
-Ferramenta web para formatar planilhas CSV do Google Contacts para padrões brasileiros. Formata números, valida DDDs, completa números incompletos e integra com API Evolution para validação WhatsApp.
+**Ferramenta gratuita** para formatar planilhas CSV do Google Contacts para padrões brasileiros. Formata números, valida DDDs, completa números incompletos e integra com **API Evolution** para validação WhatsApp. Interface moderna, responsiva e fácil de usar.
 
 ## ✨ Funcionalidades
 
@@ -25,7 +25,7 @@ Ferramenta web para formatar planilhas CSV do Google Contacts para padrões bras
 ## ⚙️ Configurações
 
 ### DDD Padrão
-- Para números incompletos (ex: 99887-7665)
+- Para números incompletos (ex: 99988-7766)
 - Padrão: 19 (configurável)
 
 ### Nome Padrão
@@ -60,8 +60,8 @@ Ferramenta web para formatar planilhas CSV do Google Contacts para padrões bras
 ## 📊 Processamento
 
 ### Números Formatados
-- **Entrada**: 19999887766, 019999887766, 999887766
-- **Saída**: 5519999887766 (padrão brasileiro)
+- **Entrada**: 11999887766, 011999887766, 999887766
+- **Saída**: 5511999887766 (padrão brasileiro)
 
 ### Validações
 - ✅ DDDs válidos (11-99)
@@ -76,10 +76,13 @@ Ferramenta web para formatar planilhas CSV do Google Contacts para padrões bras
 
 ## 🎯 Casos de Uso
 
-- **Marketing Digital**: Limpeza de listas de contatos
-- **WhatsApp Business**: Validação de números
-- **CRM**: Padronização de dados
-- **Importação**: Preparação para sistemas
+- **Marketing Digital**: Limpeza de listas de contatos para campanhas
+- **WhatsApp Business**: Validação de números para envio de mensagens
+- **CRM**: Padronização de dados de clientes
+- **Importação**: Preparação para sistemas de gestão
+- **E-commerce**: Validação de contatos de clientes
+- **Agências**: Processamento em massa de listas de contatos
+- **Empresas**: Padronização de base de dados
 
 ## 📁 Estrutura do Projeto
 
@@ -104,11 +107,37 @@ MIT License - Uso livre para projetos pessoais e comerciais.
 
 Contribuições são bem-vindas! Abra uma issue ou pull request.
 
+## ❓ FAQ - Perguntas Frequentes
+
+### Como funciona a formatação de números?
+A ferramenta converte números para o padrão brasileiro (55 + DDD + número), remove zeros iniciais e valida DDDs.
+
+### É necessário instalar algo?
+Não! A ferramenta funciona 100% no navegador, sem necessidade de instalação.
+
+### A validação WhatsApp é obrigatória?
+Não, é opcional. Você pode usar apenas a formatação de números.
+
+### Quais formatos de arquivo são aceitos?
+Apenas arquivos CSV exportados do Google Contacts.
+
+### Os dados ficam seguros?
+Sim! Todo processamento acontece localmente no seu navegador.
+
+### Posso usar para fins comerciais?
+Sim! A ferramenta é gratuita para uso pessoal e comercial.
+
 ## 📞 Suporte
 
-- **Issues**: [GitHub Issues](https://github.com/SEU_USUARIO/SEU_REPOSITORIO/issues)
+- **Issues**: [GitHub Issues](https://github.com/RelaxSolucoes/formatador-contatos-google/issues)
 - **Documentação**: Este README
 - **Exemplos**: Use o arquivo de exemplo do Google Contacts
+
+## 🔗 Links Úteis
+
+- [Google Contacts](https://contacts.google.com/) - Exportar contatos
+- [API Evolution](https://whats-evolution-v2.vercel.app/) - Validação WhatsApp
+- [GitHub Pages](https://pages.github.com/) - Hospedagem gratuita
 
 ---
 
