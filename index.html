@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formatador de Contatos Google</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 Formatador de Contatos Google</h1>
+            <p>Faça upload da sua planilha CSV do Google Contacts e baixe ela formatada para números brasileiros</p>
+        </header>
+
+        <main>
+            <div class="config-section">
+                <h3>⚙️ Configurações</h3>
+                <div class="config-inputs">
+                    <div class="input-group">
+                        <label for="defaultDDD">DDD Padrão:</label>
+                        <input type="text" id="defaultDDD" value="19" maxlength="2" placeholder="19">
+                        <span class="input-help">Para números incompletos (ex: 99887-7665)</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="defaultName">Nome Padrão:</label>
+                        <input type="text" id="defaultName" value="Cliente" maxlength="30" placeholder="Cliente">
+                        <span class="input-help">Para contatos sem nome válido</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <h3>Arraste seu arquivo CSV aqui</h3>
+                    <p>ou clique para selecionar</p>
+                    <input type="file" id="fileInput" accept=".csv" hidden>
+                </div>
+
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-details">
+                        <span class="file-name" id="fileName"></span>
+                        <span class="file-size" id="fileSize"></span>
+                    </div>
+                    <button class="btn-remove" id="removeFile">🗑️</button>
+                </div>
+            </div>
+
+            <div class="processing-section" id="processingSection" style="display: none;">
+                <h3>Processando arquivo...</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="processing-info" id="processingInfo">
+                    <p>Analisando estrutura do arquivo...</p>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h3>✅ Processamento Concluído!</h3>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number" id="identifiedContacts">0</span>
+                        <span class="stat-label">Contatos Identificados</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalContacts">0</span>
+                        <span class="stat-label">Contatos Válidos</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="removedContacts">0</span>
+                        <span class="stat-label">Contatos Removidos</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="defaultNamesUsed">0</span>
+                        <span class="stat-label">Nomes Padrão Usados</span>
+                    </div>
+                </div>
+
+                <div class="download-area">
+                    <button class="btn-download" id="downloadBtn">
+                        📥 Baixar Arquivo Formatado
+                    </button>
+                    <p class="download-note">Arquivo limpo e formatado para padrões brasileiros</p>
+                </div>
+
+                <button class="btn-toggle-debug" id="toggleDebug" style="display: none;">🔍 Ver Itens Removidos</button>
+
+                <div class="debug-section" id="debugSection" style="display: none;">
+                    <h4>📋 Debug - Itens Removidos</h4>
+
+                    <div class="debug-subsection">
+                        <h5>📞 Números Removidos</h5>
+                        <div class="removed-list" id="removedNumbersList"></div>
+                    </div>
+
+                    <div class="debug-subsection">
+                        <h5>👤 Nomes Removidos</h5>
+                        <div class="removed-list" id="removedNamesList"></div>
+                    </div>
+                </div>
+
+                <button class="btn-new" id="newFileBtn">🔄 Processar Novo Arquivo</button>
+
+                <div class="whatsapp-info" id="whatsappInfo" style="display: none;">
+                    <button class="btn-whatsapp" id="validateWhatsappBtn">📱 Validar WhatsApp</button>
+                    <p class="api-evolution-note">ℹ️ <strong>Necessita API Evolution para validar WhatsApp</strong></p>
+                </div>
+
+                <div class="whatsapp-config" id="whatsappConfig" style="display: none;">
+                    <h4>📱 Configuração da API Evolution</h4>
+                    <div class="config-inputs">
+                        <div class="input-group">
+                            <label for="serverUrl">Server URL:</label>
+                            <input type="text" id="serverUrl" placeholder="https://your-server.com">
+                            <span class="input-help">URL do servidor da API WhatsApp</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="instanceId">Instance ID:</label>
+                            <input type="text" id="instanceId" placeholder="instance123">
+                            <span class="input-help">ID da instância WhatsApp</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="apiKey">API Key:</label>
+                            <input type="password" id="apiKey" placeholder="sua-api-key">
+                            <span class="input-help">Chave da API (mantida segura)</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="batchSize">Lote (números por vez):</label>
+                            <input type="number" id="batchSize" value="50" min="1" max="1000">
+                            <span class="input-help">Quantos números validar por chamada</span>
+                        </div>
+                    </div>
+
+                    <div class="test-connection" id="testConnection">
+                        <button class="btn-test" id="testApiBtn" style="display: none;">🔌 Validar Dados</button>
+                        <div class="connection-status" id="connectionStatus" style="display: none;"></div>
+                    </div>
+
+                    <div class="start-validation" id="startValidation" style="display: none;">
+                        <button class="btn-start-validation" id="startValidationBtn">🚀 Iniciar Validação WhatsApp</button>
+                        <p class="validation-note">Validará todos os números da planilha processada</p>
+                    </div>
+
+                    <div class="api-evolution-cta">
+                        <p class="cta-text">🚀 <strong>Não possui API Evolution?</strong></p>
+                        <a href="https://whats-evolution-v2.vercel.app/" target="_blank" class="btn-cta">
+                            ⚡ Criar Minha API Grátis (7 dias)
+                        </a>
+                        <p class="cta-benefits">✅ 7 dias grátis • ✅ Sem cartão de crédito • ✅ Ativação instantânea</p>
+                    </div>
+                </div>
+
+                <div class="whatsapp-validation" id="whatsappValidation" style="display: none;">
+                    <h3>📱 Validação WhatsApp</h3>
+                    <div class="validation-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="whatsappProgressFill"></div>
+                        </div>
+                        <div class="validation-info" id="whatsappValidationInfo">
+                            <p>Preparando validação...</p>
+                        </div>
+                    </div>
+                    <div class="validation-stats" id="whatsappStats" style="display: none;">
+                        <div class="stat-item">
+                            <span class="stat-number" id="validWhatsapp">0</span>
+                            <span class="stat-label">WhatsApp Válidos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="invalidWhatsapp">0</span>
+                            <span class="stat-label">WhatsApp Inválidos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="errorWhatsapp">0</span>
+                            <span class="stat-label">Erros de Validação</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="features">
+                <h4>O que este sistema faz:</h4>
+                <ul>
+                    <li>✅ Formata números brasileiros (padrão: 5511999887766)</li>
+                    <li>✅ Completa números incompletos com DDD configurável</li>
+                    <li>✅ Suporta múltiplos números por contato (separados por :::)</li>
+                    <li>✅ Remove zero inicial de números (019 → 19)</li>
+                    <li>✅ Usa nome padrão para contatos sem nome válido</li>
+                    <li>✅ Valida DDDs brasileiros (11-99)</li>
+                    <li>✅ Validação WhatsApp via API (opcional)</li>
+                    <li>✅ Processamento em lotes configurável</li>
+                    <li>✅ Debug detalhado com números e nomes removidos</li>
+                    <li>✅ Mantém compatibilidade com Google Contacts</li>
+                </ul>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
