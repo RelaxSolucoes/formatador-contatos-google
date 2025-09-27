@@ -299,20 +299,7 @@ class ContactFormatter {
             'Ã': 'Í', 'ÃŒ': 'Ì', 'ÃŽ': 'Î', 'Ã': 'Ï',
             'Ã"': 'Ó', 'Ã'': 'Ò', 'Ã"': 'Ô', 'Ã•': 'Õ', 'Ã–': 'Ö',
             'Ãš': 'Ú', 'Ã™': 'Ù', 'Ã›': 'Û', 'Ãœ': 'Ü',
-            'Ã‡': 'Ç', 'Ã'': 'Ñ',
-            // Casos específicos encontrados
-            'SumarÃ©': 'Sumaré',
-            'vitÃ³ria': 'Vitória',
-            'VinÃ­cius': 'Vinícius',
-            'MarÃ§al': 'Marçal',
-            'VÃ¬ctor': 'Víctor',
-            'RapÃ©': 'Rapé',
-            'LourenÃ§o': 'Lourenço',
-            'DescartÃ¡vel': 'Descartável',
-            'RogÃ©rio': 'Rogério',
-            'IrmÃ£o': 'Irmão',
-            'SalomÃ£o': 'Salomão',
-            'PÃ«drinhÃ¶': 'Pedrinho'
+            'Ã‡': 'Ç', 'Ã'': 'Ñ'
         };
 
         let fixed = text;
