@@ -87,10 +87,13 @@
 ## 📁 Estrutura do Projeto
 
 ```
-├── index.html          # Interface principal
-├── script.js           # Lógica de processamento
-├── style.css           # Estilos e responsividade
-└── README.md           # Documentação
+├── index.html          # Interface principal otimizada para SEO
+├── script.js           # Lógica de processamento e validação
+├── style.css           # Estilos responsivos e modernos
+├── README.md           # Documentação completa
+├── robots.txt          # SEO - direcionamento de crawlers
+├── sitemap.xml         # SEO - mapa do site para indexação
+└── .git/               # Controle de versão Git
 ```
 
 ## 🔧 Instalação Local
