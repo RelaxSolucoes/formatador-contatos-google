@@ -312,6 +312,33 @@ class ContactFormatter {
         return fixed;
     }
 
+    normalizeApiUrl(url) {
+        if (!url) return '';
+
+        // Remove espaços e barras finais
+        let normalized = url.trim().replace(/\/+$/, '');
+
+        // Regex para validar formatos aceitos
+        const apiUrlRegex = /^(https?:\/\/)?(api\.relaxnarguiles\.com)(\/.*)?$/i;
+
+        if (apiUrlRegex.test(normalized)) {
+            // Se não tem protocolo, adiciona https://
+            if (!normalized.startsWith('http')) {
+                normalized = 'https://' + normalized;
+            }
+            // Remove path extra se houver
+            normalized = normalized.replace(/^(https?:\/\/api\.relaxnarguiles\.com).*/, '$1');
+            return normalized;
+        }
+
+        // Se não é da API esperada, retorna como está (para outras APIs)
+        if (!normalized.startsWith('http')) {
+            normalized = 'https://' + normalized;
+        }
+
+        return normalized;
+    }
+
     formatBrazilianPhone(phone) {
         if (!phone) return '';
 
@@ -512,10 +539,13 @@ class ContactFormatter {
 
     async validateWhatsApp() {
         // Verificar configurações
-        const serverUrl = document.getElementById('serverUrl').value;
+        const serverUrl = this.normalizeApiUrl(document.getElementById('serverUrl').value);
         const instanceId = document.getElementById('instanceId').value;
         const apiKey = document.getElementById('apiKey').value;
         const batchSize = parseInt(document.getElementById('batchSize').value) || 50;
+
+        // Atualizar o campo com a URL normalizada
+        document.getElementById('serverUrl').value = serverUrl;
 
         if (!serverUrl || !instanceId || !apiKey) {
             alert('Por favor, preencha todas as configurações da API WhatsApp');
@@ -732,9 +762,12 @@ class ContactFormatter {
     }
 
     async testApiConnection() {
-        const serverUrl = document.getElementById('serverUrl').value.trim();
+        const serverUrl = this.normalizeApiUrl(document.getElementById('serverUrl').value);
         const instanceId = document.getElementById('instanceId').value.trim();
         const apiKey = document.getElementById('apiKey').value.trim();
+
+        // Atualizar o campo com a URL normalizada
+        document.getElementById('serverUrl').value = serverUrl;
 
         const statusDiv = document.getElementById('connectionStatus');
         const testBtn = document.getElementById('testApiBtn');
