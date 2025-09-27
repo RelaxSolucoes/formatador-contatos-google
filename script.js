@@ -258,11 +258,8 @@ class ContactFormatter {
     cleanName(name) {
         if (!name || name === '.' || name === '...' || name === '…') return '';
 
-        // Corrigir encoding duplo primeiro
-        let fixed = this.fixDoubleEncoding(name);
-
         // Remover caracteres especiais no início e fim
-        let cleaned = fixed
+        let cleaned = name
             .replace(/^[.\s@…]+|[.\s@…]+$/g, '')
             .replace(/[^\w\sÀ-ÿ-]/g, ' ')
             .replace(/\s+/g, ' ')
@@ -281,35 +278,6 @@ class ContactFormatter {
 
         // Aceitar nomes comuns como "Cliente", "Site", etc.
         return cleaned;
-    }
-
-    fixDoubleEncoding(text) {
-        if (!text) return text;
-
-        // Mapa de correções para encoding duplo (Latin1 -> UTF-8)
-        const encodingFixes = {
-            'Ã¡': 'á', 'Ã ': 'à', 'Ã¢': 'â', 'Ã£': 'ã', 'Ã¤': 'ä',
-            'Ã©': 'é', 'Ã¨': 'è', 'Ãª': 'ê', 'Ã«': 'ë',
-            'Ã­': 'í', 'Ã¬': 'ì', 'Ã®': 'î', 'Ã¯': 'ï',
-            'Ã³': 'ó', 'Ã²': 'ò', 'Ã´': 'ô', 'Ãµ': 'õ', 'Ã¶': 'ö',
-            'Ãº': 'ú', 'Ã¹': 'ù', 'Ã»': 'û', 'Ã¼': 'ü',
-            'Ã§': 'ç', 'Ã±': 'ñ',
-            'Ã': 'Á', 'Ã€': 'À', 'Ã‚': 'Â', 'Ãƒ': 'Ã', 'Ã„': 'Ä',
-            'Ã‰': 'É', 'Ãˆ': 'È', 'ÃŠ': 'Ê', 'Ã‹': 'Ë',
-            'Ã': 'Í', 'ÃŒ': 'Ì', 'ÃŽ': 'Î', 'Ã': 'Ï',
-            'Ã"': 'Ó', 'Ã'': 'Ò', 'Ã"': 'Ô', 'Ã•': 'Õ', 'Ã–': 'Ö',
-            'Ãš': 'Ú', 'Ã™': 'Ù', 'Ã›': 'Û', 'Ãœ': 'Ü',
-            'Ã‡': 'Ç', 'Ã'': 'Ñ'
-        };
-
-        let fixed = text;
-
-        // Aplicar correções específicas primeiro
-        for (const [wrong, right] of Object.entries(encodingFixes)) {
-            fixed = fixed.replace(new RegExp(wrong, 'g'), right);
-        }
-
-        return fixed;
     }
 
     normalizeApiUrl(url) {
