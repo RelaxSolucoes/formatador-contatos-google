@@ -133,26 +133,33 @@ class ContactFormatter {
         this.removedNames = [];
         this.usedDefaultNames = 0;
 
+        // Map para garantir números únicos - chave: número, valor: dados do contato
+        this.uniqueContacts = new Map();
+
         this.stats.identifiedContacts = dataLines.length;
 
         dataLines.forEach((line, index) => {
             const progress = 25 + (index / dataLines.length) * 50;
             this.updateProgress(progress, `Processando contato ${index + 1} de ${dataLines.length}...`);
 
-            const processedLines_from_contact = this.processContactLine(line);
-            if (processedLines_from_contact && processedLines_from_contact.length > 0) {
-                processedLines_from_contact.forEach(processedLine => {
-                    processedLines.push(processedLine);
-                    this.stats.totalContacts++;
-                });
-            } else {
-                this.stats.removedContacts++;
-            }
+            // Processar contato com deduplicação
+            this.processContactLineUnique(line);
         });
+
+        // Converter Map para array de linhas CSV
+        this.uniqueContacts.forEach(contactData => {
+            processedLines.push(contactData.csvLine);
+            this.stats.totalContacts++;
+        });
+
+        // Calcular contatos removidos (duplicados + inválidos)
+        this.stats.removedContacts = this.stats.identifiedContacts - this.stats.totalContacts;
 
         this.updateProgress(90, 'Finalizando processamento...');
 
         this.processedData = processedLines.join('\n');
+
+        console.log(`Processamento concluído: ${this.stats.identifiedContacts} originais → ${this.stats.totalContacts} únicos (${this.stats.removedContacts} duplicados removidos)`);
 
         setTimeout(() => {
             this.updateProgress(100, 'Processamento concluído!');
@@ -255,6 +262,83 @@ class ContactFormatter {
             }
             return field;
         }).join(',');
+    }
+
+    processContactLineUnique(line) {
+        const columns = this.parseCSVLine(line);
+        if (columns.length < 19) return; // Linha incompleta
+
+        const firstName = columns[0] || '';
+        const lastName = columns[2] || '';
+        let phoneValue = columns[18] || '';
+
+        // Limpar nomes
+        let cleanedFirstName = this.cleanName(firstName);
+        let cleanedLastName = this.cleanName(lastName);
+
+        // Se não tem nome válido, usar padrão
+        if (!cleanedFirstName && !cleanedLastName) {
+            const defaultName = document.getElementById('defaultName').value || 'Cliente';
+            cleanedFirstName = defaultName;
+            this.usedDefaultNames++;
+        }
+
+        // Processar números de telefone
+        if (!phoneValue) return; // Sem número = contato inútil
+
+        const phoneNumbers = phoneValue.split(':::').map(p => p.trim()).filter(p => p);
+
+        phoneNumbers.forEach(singlePhone => {
+            const formattedPhone = this.formatBrazilianPhone(singlePhone);
+
+            if (formattedPhone && this.isValidBrazilianPhone(formattedPhone)) {
+                // Verificar se número já existe
+                if (this.uniqueContacts.has(formattedPhone)) {
+                    // Número duplicado - melhorar dados existentes se possível
+                    const existing = this.uniqueContacts.get(formattedPhone);
+
+                    // Se o existente tem nome padrão e este tem nome real, atualizar
+                    if (existing.isDefaultName && (cleanedFirstName || cleanedLastName)) {
+                        existing.firstName = cleanedFirstName || existing.firstName;
+                        existing.lastName = cleanedLastName || existing.lastName;
+                        existing.isDefaultName = false;
+
+                        // Recriar linha CSV atualizada
+                        const newColumns = [...columns];
+                        newColumns[0] = existing.firstName;
+                        newColumns[2] = existing.lastName;
+                        newColumns[18] = formattedPhone;
+                        existing.csvLine = this.arrayToCSVLine(newColumns);
+                    }
+
+                    // Log do duplicado rejeitado
+                    this.removedNumbers.push({
+                        number: singlePhone,
+                        reason: `Duplicado de ${formattedPhone}`
+                    });
+                } else {
+                    // Número único - adicionar ao mapa
+                    const newColumns = [...columns];
+                    newColumns[0] = cleanedFirstName;
+                    newColumns[2] = cleanedLastName;
+                    newColumns[18] = formattedPhone;
+
+                    this.uniqueContacts.set(formattedPhone, {
+                        firstName: cleanedFirstName,
+                        lastName: cleanedLastName,
+                        phone: formattedPhone,
+                        isDefaultName: (!firstName && !lastName),
+                        csvLine: this.arrayToCSVLine(newColumns)
+                    });
+                }
+            } else {
+                // Número inválido
+                this.removedNumbers.push({
+                    number: singlePhone,
+                    reason: 'Número inválido ou DDD incorreto'
+                });
+            }
+        });
     }
 
     cleanName(name) {
@@ -632,20 +716,14 @@ class ContactFormatter {
             const end = Math.min(start + batchSize, numbers.length);
             const batch = numbers.slice(start, end);
 
-            // Verificar duplicados dentro do lote (dupla segurança)
-            const uniqueBatch = [...new Set(batch)];
-            if (uniqueBatch.length !== batch.length) {
-                console.warn(`Lote ${i + 1} tinha duplicados: ${batch.length} → ${uniqueBatch.length}`);
-            }
-
             // Atualizar progresso
             const progress = ((i + 1) / totalBatches) * 100;
             document.getElementById('whatsappProgressFill').style.width = progress + '%';
             document.getElementById('whatsappValidationInfo').innerHTML =
-                `<p>Validando lote ${i + 1} de ${totalBatches} (${uniqueBatch.length} números únicos)...</p>`;
+                `<p>Validando lote ${i + 1} de ${totalBatches} (${batch.length} números)...</p>`;
 
             try {
-                const result = await this.validateNumbersBatch(serverUrl, instanceId, apiKey, uniqueBatch);
+                const result = await this.validateNumbersBatch(serverUrl, instanceId, apiKey, batch);
 
                 // Processar resultado - API Evolution retorna array direto
                 if (Array.isArray(result)) {
@@ -704,7 +782,7 @@ class ContactFormatter {
         if (!this.processedData) return [];
 
         const lines = this.processedData.split('\n');
-        const numbersSet = new Set(); // Usar Set para remover duplicados
+        const numbers = [];
 
         // Pular cabeçalho
         for (let i = 1; i < lines.length; i++) {
@@ -713,15 +791,14 @@ class ContactFormatter {
 
             const columns = this.parseCSVLine(line);
             if (columns.length >= 19 && columns[18]) {
-                // O número já foi sanitizado pelo formatBrazilianPhone()
-                numbersSet.add(columns[18]);
+                // Números já são únicos graças ao processamento com Map
+                numbers.push(columns[18]);
             }
         }
 
-        const uniqueNumbers = Array.from(numbersSet);
-        console.log(`Extraídos ${uniqueNumbers.length} números únicos (${numbersSet.size} vs ${lines.length - 1} linhas)`);
-        console.log('Amostra:', uniqueNumbers.slice(0, 3));
-        return uniqueNumbers;
+        console.log(`Extraídos ${numbers.length} números únicos para validação`);
+        console.log('Amostra:', numbers.slice(0, 3));
+        return numbers;
     }
 
     cleanPhoneForAPI(phone) {
