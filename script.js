@@ -21,7 +21,7 @@ class ContactFormatter {
         const fileInput = document.getElementById('fileInput');
         const removeFileBtn = document.getElementById('removeFile');
         const downloadBtn = document.getElementById('downloadBtn');
-        const downloadValidBtn = document.getElementById('downloadValidBtn');
+        const downloadFinalBtn = document.getElementById('downloadFinalBtn');
         const newFileBtn = document.getElementById('newFileBtn');
         const toggleDebugBtn = document.getElementById('toggleDebug');
         const validateWhatsappBtn = document.getElementById('validateWhatsappBtn');
@@ -36,7 +36,7 @@ class ContactFormatter {
         fileInput.addEventListener('change', this.handleFileSelect.bind(this));
         removeFileBtn.addEventListener('click', this.resetInterface.bind(this));
         downloadBtn.addEventListener('click', this.downloadProcessedFile.bind(this));
-        downloadValidBtn.addEventListener('click', this.downloadValidatedFile.bind(this));
+        downloadFinalBtn.addEventListener('click', this.downloadFinalCSV.bind(this));
         newFileBtn.addEventListener('click', this.resetInterface.bind(this));
         toggleDebugBtn.addEventListener('click', this.toggleDebugInfo.bind(this));
         validateWhatsappBtn.addEventListener('click', this.showWhatsAppConfig.bind(this));
@@ -73,6 +73,16 @@ class ContactFormatter {
                 document.getElementById('apiKey').value = savedSettings.apiKey;
             }, 100);
         }
+
+        // Verificar se deve mostrar botões após carregar dados
+        setTimeout(() => {
+            this.checkApiInputs();
+            
+            // Se há dados salvos, mostrar seção de validação WhatsApp
+            if (savedSettings.serverUrl || savedSettings.instanceId || savedSettings.apiKey) {
+                document.getElementById('whatsappInfo').style.display = 'block';
+            }
+        }, 200);
     }
 
     saveApiSettings() {
@@ -305,19 +315,37 @@ class ContactFormatter {
         if (columns.length < 19) return; // Linha incompleta
 
         const firstName = columns[0] || '';
+        const middleName = columns[1] || '';
         const lastName = columns[2] || '';
         let phoneValue = columns[18] || '';
 
         // Limpar nomes
         let cleanedFirstName = this.cleanName(firstName);
+        let cleanedMiddleName = this.cleanName(middleName);
         let cleanedLastName = this.cleanName(lastName);
 
+        // Lógica inteligente de seleção de nome
+        let finalFirstName = '';
+        let finalLastName = '';
+        
+        // Prioridade: First Name > Last Name > Middle Name
+        if (cleanedFirstName) {
+            finalFirstName = cleanedFirstName;
+        } else if (cleanedLastName) {
+            finalFirstName = cleanedLastName;
+        } else if (cleanedMiddleName) {
+            finalFirstName = cleanedMiddleName;
+        }
+
         // Se não tem nome válido, usar padrão
-        if (!cleanedFirstName && !cleanedLastName) {
+        if (!finalFirstName) {
             const defaultName = document.getElementById('defaultName').value || 'Cliente';
-            cleanedFirstName = defaultName;
+            finalFirstName = defaultName;
             this.usedDefaultNames++;
         }
+
+        // Marcar para usar Name da API se necessário
+        const useApiName = !finalFirstName || finalFirstName === (document.getElementById('defaultName').value || 'Cliente');
 
         // Processar números de telefone
         if (!phoneValue) return; // Sem número = contato inútil
@@ -355,15 +383,16 @@ class ContactFormatter {
                 } else {
                     // Número único - adicionar ao mapa
                     const newColumns = [...columns];
-                    newColumns[0] = cleanedFirstName;
-                    newColumns[2] = cleanedLastName;
+                    newColumns[0] = finalFirstName;
+                    newColumns[2] = finalLastName;
                     newColumns[18] = formattedPhone;
 
                     this.uniqueContacts.set(formattedPhone, {
-                        firstName: cleanedFirstName,
-                        lastName: cleanedLastName,
+                        firstName: finalFirstName,
+                        lastName: finalLastName,
                         phone: formattedPhone,
-                        isDefaultName: (!firstName && !lastName),
+                        isDefaultName: useApiName,
+                        useApiName: useApiName,
                         csvLine: this.arrayToCSVLine(newColumns)
                     });
                 }
@@ -396,7 +425,7 @@ class ContactFormatter {
         }
 
         // Verificar se não é apenas caracteres especiais ou palavras genéricas muito específicas
-        const invalidNames = ['cliente pod', 'cliente site', 'pod cliente'];
+        const invalidNames = ['cliente pod', 'cliente site', 'pod cliente', 'clientes', 'cliente'];
         if (invalidNames.includes(cleaned.toLowerCase())) {
             return '';
         }
@@ -408,38 +437,44 @@ class ContactFormatter {
     fixDoubleEncoding(text) {
         if (!text) return text;
 
-        // Correções UTF-8 mojibake - ORDER MATTERS! Específicos primeiro
-        let fixed = text
-            // Sequências específicas primeiro (para evitar conflitos)
-            .replace(/CÃ©sar/g, 'César').replace(/AndrÃ©/g, 'André')
-            // Acentos agudos minúsculos
-            .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
-            .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã½/g, 'ý')
-            // Acentos agudos maiúsculos
-            .replace(/Ã/g, 'Á').replace(/Ã‰/g, 'É').replace(/Ã/g, 'Í')
-            .replace(/Ã"/g, 'Ó').replace(/Ãš/g, 'Ú').replace(/Ã/g, 'Ý')
-            // Acentos graves
-            .replace(/Ã /g, 'à').replace(/Ã€/g, 'À').replace(/Ã¨/g, 'è')
-            .replace(/Ãˆ/g, 'È').replace(/Ã¬/g, 'ì').replace(/ÃŒ/g, 'Ì')
-            .replace(/Ã¹/g, 'ù').replace(/Ã™/g, 'Ù')
+        // Sistema inteligente de correção UTF-8 mojibake
+        let fixed = text;
+
+        // 1. CORREÇÃO INTELIGENTE: Mapeamento direto de caracteres mojibake
+        const mojibakeMap = {
+            // Acentos agudos
+            'Ã¡': 'á', 'Ã©': 'é', 'Ã­': 'í', 'Ã³': 'ó', 'Ãº': 'ú', 'Ã½': 'ý',
+            'Ã‰': 'É', 'Ã"': 'Ó', 'Ãš': 'Ú',
+            
+            // Acentos graves  
+            'Ã ': 'à', 'Ã€': 'À', 'Ã¨': 'è', 'Ãˆ': 'È', 'Ã¬': 'ì', 'ÃŒ': 'Ì',
+            'Ã¹': 'ù', 'Ã™': 'Ù',
+            
             // Circunflexos
-            .replace(/Ã¢/g, 'â').replace(/Ã‚/g, 'Â').replace(/Ãª/g, 'ê')
-            .replace(/ÃŠ/g, 'Ê').replace(/Ã®/g, 'î').replace(/ÃŽ/g, 'Î')
-            .replace(/Ã´/g, 'ô').replace(/Ã"/g, 'Ô').replace(/Ã»/g, 'û')
-            .replace(/Ã›/g, 'Û')
+            'Ã¢': 'â', 'Ã‚': 'Â', 'Ãª': 'ê', 'ÃŠ': 'Ê', 'Ã®': 'î', 'ÃŽ': 'Î',
+            'Ã´': 'ô', 'Ã"': 'Ô', 'Ã»': 'û', 'Ã›': 'Û',
+            
             // Til
-            .replace(/Ã£/g, 'ã').replace(/Ãƒ/g, 'Ã').replace(/Ãµ/g, 'õ')
-            .replace(/Ã•/g, 'Õ').replace(/Ã±/g, 'ñ').replace(/Ã'/g, 'Ñ')
+            'Ã£': 'ã', 'Ãƒ': 'Ã', 'Ãµ': 'õ', 'Ã•': 'Õ', 'Ã±': 'ñ', 'Ã\'': 'Ñ',
+            
             // Tremas
-            .replace(/Ã¤/g, 'ä').replace(/Ã„/g, 'Ä').replace(/Ã«/g, 'ë')
-            .replace(/Ã‹/g, 'Ë').replace(/Ã¯/g, 'ï').replace(/Ã/g, 'Ï')
-            .replace(/Ã¶/g, 'ö').replace(/Ã–/g, 'Ö').replace(/Ã¼/g, 'ü')
-            .replace(/Ãœ/g, 'Ü')
+            'Ã¤': 'ä', 'Ã„': 'Ä', 'Ã«': 'ë', 'Ã‹': 'Ë', 'Ã¯': 'ï',
+            'Ã¶': 'ö', 'Ã–': 'Ö', 'Ã¼': 'ü', 'Ãœ': 'Ü',
+            
             // Cedilha
-            .replace(/Ã§/g, 'ç').replace(/Ã‡/g, 'Ç')
-            // Caracteres especiais comuns
-            .replace(/Â /g, ' ').replace(/Âº/g, 'º').replace(/Âª/g, 'ª')
-            .replace(/Â°/g, '°').replace(/Â®/g, '®').replace(/Â©/g, '©');
+            'Ã§': 'ç', 'Ã‡': 'Ç',
+            
+            // Caracteres especiais
+            'Â ': ' ', 'Âº': 'º', 'Âª': 'ª', 'Â°': '°', 'Â®': '®', 'Â©': '©'
+        };
+
+        // 2. APLICAR CORREÇÕES: Substitui todos os caracteres mojibake
+        for (const [mojibake, correct] of Object.entries(mojibakeMap)) {
+            // Regex global e case-insensitive para capturar todas as ocorrências
+            const regex = new RegExp(mojibake.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            fixed = fixed.replace(regex, correct);
+        }
+
 
         return fixed;
     }
@@ -584,13 +619,16 @@ class ContactFormatter {
             return;
         }
 
-        const blob = new Blob([this.processedData], { type: 'text/csv;charset=utf-8;' });
+        // Gerar CSV otimizado para plugin WordPress
+        const optimizedCsv = this.generateOptimizedCSV();
+
+        const blob = new Blob([optimizedCsv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
 
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', 'contatos_formatados.csv');
+            link.setAttribute('download', 'contatos_formatados_otimizado.csv');
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -598,51 +636,112 @@ class ContactFormatter {
         }
     }
 
-    downloadValidatedFile() {
-        if (!this.whatsappResults || this.whatsappResults.length === 0) {
-            alert('Nenhuma validação WhatsApp disponível para download.');
-            return;
-        }
+    generateOptimizedCSV() {
+        if (!this.uniqueContacts) return '';
 
-        // Filtrar apenas números válidos do WhatsApp
-        const validNumbers = this.whatsappResults.filter(result => result.valid === true);
+        // Cabeçalho otimizado para plugin WordPress
+        const header = 'nome,telefone,usar_api_name,api_name,observacoes';
+        const lines = [header];
 
-        console.log('Total results:', this.whatsappResults.length);
-        console.log('Valid results:', validNumbers.length);
-        console.log('Sample result:', this.whatsappResults[0]);
-
-        if (validNumbers.length === 0) {
-            alert('Nenhum número WhatsApp válido encontrado.');
-            return;
-        }
-
-        // Recriar CSV apenas com números válidos
-        const lines = this.processedData.split('\n');
-        const header = lines[0];
-        const validLines = [header];
-
-        // Adicionar apenas linhas com números válidos
-        validNumbers.forEach(validResult => {
-            const matchingLine = lines.find(line => line.includes(validResult.number));
-            if (matchingLine) {
-                validLines.push(matchingLine);
+        this.uniqueContacts.forEach(contact => {
+            const useApiName = contact.useApiName ? 'SIM' : 'NAO';
+            const observacoes = contact.useApiName ? 'Nome genérico - usar Name da API' : 'Nome válido encontrado';
+            
+            // Buscar nome da API se disponível
+            let apiName = '';
+            if (this.whatsappResults && this.whatsappResults.length > 0) {
+                const apiResult = this.whatsappResults.find(result => result.number === contact.phone);
+                if (apiResult && apiResult.apiName) {
+                    apiName = apiResult.apiName;
+                }
             }
+            
+            lines.push(`${contact.firstName},${contact.phone},${useApiName},"${apiName}","${observacoes}"`);
         });
 
-        const validCsv = validLines.join('\n');
-        const blob = new Blob([validCsv], { type: 'text/csv;charset=utf-8;' });
+        return lines.join('\n');
+    }
+
+    generateFinalCSV() {
+        if (!this.uniqueContacts) return '';
+
+        // Cabeçalho final para plugin WordPress
+        const header = 'nome_final,telefone,origem_nome,observacoes';
+        const lines = [header];
+
+        this.uniqueContacts.forEach(contact => {
+            // FILTRAR APENAS NÚMEROS VÁLIDOS DO WHATSAPP
+            if (this.whatsappResults && this.whatsappResults.length > 0) {
+                const apiResult = this.whatsappResults.find(result => result.number === contact.phone);
+                if (!apiResult || !apiResult.valid) {
+                    return; // Pular números inválidos ou não validados
+                }
+            }
+
+            let finalName = contact.firstName;
+            let origemNome = 'Formatador';
+            let observacoes = 'Nome válido encontrado no CSV';
+            
+            // LÓGICA DE PRIORIDADE CORRIGIDA:
+            // 1. Nome real (do CSV, se válido)
+            // 2. Name da API (se disponível)
+            // 3. Cliente (nome padrão configurado)
+            
+            if (!contact.useApiName) {
+                // Caso 1: Nome real válido encontrado no CSV
+                finalName = contact.firstName;
+                origemNome = 'Formatador';
+                observacoes = 'Nome válido encontrado no CSV';
+            } else {
+                // Caso 2: Nome genérico - tentar API primeiro
+                if (this.whatsappResults && this.whatsappResults.length > 0) {
+                    const apiResult = this.whatsappResults.find(result => result.number === contact.phone);
+                    if (apiResult && apiResult.apiName) {
+                        // API retornou nome
+                        finalName = apiResult.apiName;
+                        origemNome = 'API WhatsApp';
+                        observacoes = 'Nome obtido da API WhatsApp';
+                    } else {
+                        // API não retornou nome - usar padrão
+                        finalName = contact.firstName; // Já é o nome padrão
+                        origemNome = 'Padrão';
+                        observacoes = 'Nome padrão - API não retornou nome';
+                    }
+                } else {
+                    // Sem validação da API - usar padrão
+                    finalName = contact.firstName; // Já é o nome padrão
+                    origemNome = 'Padrão';
+                    observacoes = 'Nome padrão - sem validação da API';
+                }
+            }
+            
+            lines.push(`"${finalName}",${contact.phone},"${origemNome}","${observacoes}"`);
+        });
+
+        return lines.join('\n');
+    }
+
+    downloadFinalCSV() {
+        if (!this.uniqueContacts) {
+            alert('Nenhum contato processado disponível.');
+            return;
+        }
+
+        const finalCsv = this.generateFinalCSV();
+        const blob = new Blob([finalCsv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
 
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', 'contatos_whatsapp_validos.csv');
+            link.setAttribute('download', 'contatos_validados_whatsapp.csv');
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
     }
+
 
     resetInterface() {
         document.getElementById('fileInfo').style.display = 'none';
@@ -772,7 +871,8 @@ class ContactFormatter {
                             number: item.number,
                             valid: isValid,
                             status: item,
-                            name: item.name || null
+                            name: item.name || null,
+                            apiName: item.name || null
                         });
 
                         if (isValid) {
