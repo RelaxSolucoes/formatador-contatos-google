@@ -12,6 +12,7 @@ class ContactFormatter {
         this.usedDefaultNames = 0;
         this.whatsappResults = [];
 
+        this.loadApiSettings();
         this.initializeEventListeners();
     }
 
@@ -46,7 +47,42 @@ class ContactFormatter {
         const apiInputs = ['serverUrl', 'instanceId', 'apiKey'];
         apiInputs.forEach(inputId => {
             document.getElementById(inputId).addEventListener('input', this.checkApiInputs.bind(this));
+            document.getElementById(inputId).addEventListener('input', this.saveApiSettings.bind(this));
         });
+    }
+
+    loadApiSettings() {
+        const savedSettings = {
+            serverUrl: localStorage.getItem('whatsapp_server_url') || '',
+            instanceId: localStorage.getItem('whatsapp_instance_id') || '',
+            apiKey: localStorage.getItem('whatsapp_api_key') || ''
+        };
+
+        if (savedSettings.serverUrl) {
+            setTimeout(() => {
+                document.getElementById('serverUrl').value = savedSettings.serverUrl;
+            }, 100);
+        }
+        if (savedSettings.instanceId) {
+            setTimeout(() => {
+                document.getElementById('instanceId').value = savedSettings.instanceId;
+            }, 100);
+        }
+        if (savedSettings.apiKey) {
+            setTimeout(() => {
+                document.getElementById('apiKey').value = savedSettings.apiKey;
+            }, 100);
+        }
+    }
+
+    saveApiSettings() {
+        const serverUrl = document.getElementById('serverUrl').value;
+        const instanceId = document.getElementById('instanceId').value;
+        const apiKey = document.getElementById('apiKey').value;
+
+        if (serverUrl) localStorage.setItem('whatsapp_server_url', serverUrl);
+        if (instanceId) localStorage.setItem('whatsapp_instance_id', instanceId);
+        if (apiKey) localStorage.setItem('whatsapp_api_key', apiKey);
     }
 
     handleDragOver(e) {
