@@ -707,15 +707,55 @@ class ContactFormatter {
 
             const columns = this.parseCSVLine(line);
             if (columns.length >= 19 && columns[18]) {
-                numbers.push(columns[18]);
+                // Limpar e validar número antes de adicionar
+                const cleanNumber = this.cleanPhoneForAPI(columns[18]);
+                if (cleanNumber) {
+                    numbers.push(cleanNumber);
+                }
             }
         }
 
+        console.log(`Extraídos ${numbers.length} números para validação`);
+        console.log('Amostra:', numbers.slice(0, 3));
         return numbers;
+    }
+
+    cleanPhoneForAPI(phone) {
+        if (!phone) return null;
+
+        // Remover todos os caracteres não numéricos
+        let cleaned = phone.replace(/[^\d]/g, '');
+
+        // Deve ter pelo menos 10 dígitos (DDD + número)
+        if (cleaned.length < 10) return null;
+
+        // Se tem 13 dígitos e começa com 55, está correto
+        if (cleaned.length === 13 && cleaned.startsWith('55')) {
+            return cleaned;
+        }
+
+        // Se tem 11 dígitos, adicionar código do país (55)
+        if (cleaned.length === 11) {
+            return '55' + cleaned;
+        }
+
+        // Se tem 10 dígitos, adicionar 55 + 9 (celular)
+        if (cleaned.length === 10) {
+            return '55' + cleaned.substring(0, 2) + '9' + cleaned.substring(2);
+        }
+
+        console.warn(`Número rejeitado: ${phone} -> ${cleaned}`);
+        return null;
     }
 
     async validateNumbersBatch(serverUrl, instanceId, apiKey, numbers) {
         const url = `${serverUrl}/chat/whatsappNumbers/${instanceId}`;
+
+        console.log(`Enviando ${numbers.length} números para ${url}`);
+        console.log('Números:', numbers.slice(0, 3), '...');
+
+        const payload = { numbers: numbers };
+        console.log('Payload:', JSON.stringify(payload).substring(0, 200) + '...');
 
         const response = await fetch(url, {
             method: 'POST',
@@ -723,16 +763,18 @@ class ContactFormatter {
                 'Content-Type': 'application/json',
                 'apikey': apiKey
             },
-            body: JSON.stringify({
-                numbers: numbers
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error(`HTTP ${response.status}:`, errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText.substring(0, 100)}`);
         }
 
-        return await response.json();
+        const result = await response.json();
+        console.log('Resposta da API:', result);
+        return result;
     }
 
     finishWhatsAppValidation(stats) {
