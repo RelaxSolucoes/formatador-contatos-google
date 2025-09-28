@@ -2,6 +2,12 @@
 
 **Ferramenta gratuita** para formatar planilhas CSV do Google Contacts para padrões brasileiros. Formata números, valida DDDs, completa números incompletos e integra com **API Evolution** para validação WhatsApp. Interface moderna, responsiva e fácil de usar.
 
+## 🌐 **Teste Online**
+
+**🚀 [Acesse a ferramenta online](https://relaxsolucoes.github.io/formatador-contatos-google/)**
+
+Teste todas as funcionalidades diretamente no navegador, sem necessidade de instalação!
+
 ## ✨ Funcionalidades
 
 - **Formatação Automática**: Converte números para padrão brasileiro (55 + DDD + número)
@@ -15,7 +21,7 @@
 
 ## 🚀 Como Usar
 
-1. **Acesse a ferramenta** no GitHub Pages
+1. **Acesse a ferramenta** em [relaxsolucoes.github.io/formatador-contatos-google](https://relaxsolucoes.github.io/formatador-contatos-google/)
 2. **Configure** o DDD padrão e nome padrão
 3. **Arraste** seu arquivo CSV do Google Contacts
 4. **Aguarde** o processamento automático
@@ -138,6 +144,7 @@ Sim! A ferramenta é gratuita para uso pessoal e comercial.
 
 ## 🔗 Links Úteis
 
+- **🚀 [Ferramenta Online](https://relaxsolucoes.github.io/formatador-contatos-google/)** - Teste diretamente no navegador
 - [Google Contacts](https://contacts.google.com/) - Exportar contatos
 - [API Evolution](https://whats-evolution-v2.vercel.app/) - Validação WhatsApp
 - [GitHub Pages](https://pages.github.com/) - Hospedagem gratuita
