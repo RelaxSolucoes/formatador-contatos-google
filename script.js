@@ -632,14 +632,20 @@ class ContactFormatter {
             const end = Math.min(start + batchSize, numbers.length);
             const batch = numbers.slice(start, end);
 
+            // Verificar duplicados dentro do lote (dupla segurança)
+            const uniqueBatch = [...new Set(batch)];
+            if (uniqueBatch.length !== batch.length) {
+                console.warn(`Lote ${i + 1} tinha duplicados: ${batch.length} → ${uniqueBatch.length}`);
+            }
+
             // Atualizar progresso
             const progress = ((i + 1) / totalBatches) * 100;
             document.getElementById('whatsappProgressFill').style.width = progress + '%';
             document.getElementById('whatsappValidationInfo').innerHTML =
-                `<p>Validando lote ${i + 1} de ${totalBatches} (${batch.length} números)...</p>`;
+                `<p>Validando lote ${i + 1} de ${totalBatches} (${uniqueBatch.length} números únicos)...</p>`;
 
             try {
-                const result = await this.validateNumbersBatch(serverUrl, instanceId, apiKey, batch);
+                const result = await this.validateNumbersBatch(serverUrl, instanceId, apiKey, uniqueBatch);
 
                 // Processar resultado - API Evolution retorna array direto
                 if (Array.isArray(result)) {
@@ -698,7 +704,7 @@ class ContactFormatter {
         if (!this.processedData) return [];
 
         const lines = this.processedData.split('\n');
-        const numbers = [];
+        const numbersSet = new Set(); // Usar Set para remover duplicados
 
         // Pular cabeçalho
         for (let i = 1; i < lines.length; i++) {
@@ -707,17 +713,15 @@ class ContactFormatter {
 
             const columns = this.parseCSVLine(line);
             if (columns.length >= 19 && columns[18]) {
-                // Limpar e validar número antes de adicionar
-                const cleanNumber = this.cleanPhoneForAPI(columns[18]);
-                if (cleanNumber) {
-                    numbers.push(cleanNumber);
-                }
+                // O número já foi sanitizado pelo formatBrazilianPhone()
+                numbersSet.add(columns[18]);
             }
         }
 
-        console.log(`Extraídos ${numbers.length} números para validação`);
-        console.log('Amostra:', numbers.slice(0, 3));
-        return numbers;
+        const uniqueNumbers = Array.from(numbersSet);
+        console.log(`Extraídos ${uniqueNumbers.length} números únicos (${numbersSet.size} vs ${lines.length - 1} linhas)`);
+        console.log('Amostra:', uniqueNumbers.slice(0, 3));
+        return uniqueNumbers;
     }
 
     cleanPhoneForAPI(phone) {
