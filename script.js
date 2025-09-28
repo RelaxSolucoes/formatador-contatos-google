@@ -20,6 +20,7 @@ class ContactFormatter {
         const fileInput = document.getElementById('fileInput');
         const removeFileBtn = document.getElementById('removeFile');
         const downloadBtn = document.getElementById('downloadBtn');
+        const downloadValidBtn = document.getElementById('downloadValidBtn');
         const newFileBtn = document.getElementById('newFileBtn');
         const toggleDebugBtn = document.getElementById('toggleDebug');
         const validateWhatsappBtn = document.getElementById('validateWhatsappBtn');
@@ -34,6 +35,7 @@ class ContactFormatter {
         fileInput.addEventListener('change', this.handleFileSelect.bind(this));
         removeFileBtn.addEventListener('click', this.resetInterface.bind(this));
         downloadBtn.addEventListener('click', this.downloadProcessedFile.bind(this));
+        downloadValidBtn.addEventListener('click', this.downloadValidatedFile.bind(this));
         newFileBtn.addEventListener('click', this.resetInterface.bind(this));
         toggleDebugBtn.addEventListener('click', this.toggleDebugInfo.bind(this));
         validateWhatsappBtn.addEventListener('click', this.showWhatsAppConfig.bind(this));
@@ -258,8 +260,11 @@ class ContactFormatter {
     cleanName(name) {
         if (!name || name === '.' || name === '...' || name === '…') return '';
 
+        // Corrigir encoding duplo primeiro
+        let fixed = this.fixDoubleEncoding(name);
+
         // Remover caracteres especiais no início e fim
-        let cleaned = name
+        let cleaned = fixed
             .replace(/^[.\s@…]+|[.\s@…]+$/g, '')
             .replace(/[^\w\sÀ-ÿ-]/g, ' ')
             .replace(/\s+/g, ' ')
@@ -278,6 +283,45 @@ class ContactFormatter {
 
         // Aceitar nomes comuns como "Cliente", "Site", etc.
         return cleaned;
+    }
+
+    fixDoubleEncoding(text) {
+        if (!text) return text;
+
+        // Correções UTF-8 mojibake - ORDER MATTERS! Específicos primeiro
+        let fixed = text
+            // Sequências específicas primeiro (para evitar conflitos)
+            .replace(/CÃ©sar/g, 'César').replace(/AndrÃ©/g, 'André')
+            // Acentos agudos minúsculos
+            .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
+            .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã½/g, 'ý')
+            // Acentos agudos maiúsculos
+            .replace(/Ã/g, 'Á').replace(/Ã‰/g, 'É').replace(/Ã/g, 'Í')
+            .replace(/Ã"/g, 'Ó').replace(/Ãš/g, 'Ú').replace(/Ã/g, 'Ý')
+            // Acentos graves
+            .replace(/Ã /g, 'à').replace(/Ã€/g, 'À').replace(/Ã¨/g, 'è')
+            .replace(/Ãˆ/g, 'È').replace(/Ã¬/g, 'ì').replace(/ÃŒ/g, 'Ì')
+            .replace(/Ã¹/g, 'ù').replace(/Ã™/g, 'Ù')
+            // Circunflexos
+            .replace(/Ã¢/g, 'â').replace(/Ã‚/g, 'Â').replace(/Ãª/g, 'ê')
+            .replace(/ÃŠ/g, 'Ê').replace(/Ã®/g, 'î').replace(/ÃŽ/g, 'Î')
+            .replace(/Ã´/g, 'ô').replace(/Ã"/g, 'Ô').replace(/Ã»/g, 'û')
+            .replace(/Ã›/g, 'Û')
+            // Til
+            .replace(/Ã£/g, 'ã').replace(/Ãƒ/g, 'Ã').replace(/Ãµ/g, 'õ')
+            .replace(/Ã•/g, 'Õ').replace(/Ã±/g, 'ñ').replace(/Ã'/g, 'Ñ')
+            // Tremas
+            .replace(/Ã¤/g, 'ä').replace(/Ã„/g, 'Ä').replace(/Ã«/g, 'ë')
+            .replace(/Ã‹/g, 'Ë').replace(/Ã¯/g, 'ï').replace(/Ã/g, 'Ï')
+            .replace(/Ã¶/g, 'ö').replace(/Ã–/g, 'Ö').replace(/Ã¼/g, 'ü')
+            .replace(/Ãœ/g, 'Ü')
+            // Cedilha
+            .replace(/Ã§/g, 'ç').replace(/Ã‡/g, 'Ç')
+            // Caracteres especiais comuns
+            .replace(/Â /g, ' ').replace(/Âº/g, 'º').replace(/Âª/g, 'ª')
+            .replace(/Â°/g, '°').replace(/Â®/g, '®').replace(/Â©/g, '©');
+
+        return fixed;
     }
 
     normalizeApiUrl(url) {
@@ -434,6 +478,48 @@ class ContactFormatter {
         }
     }
 
+    downloadValidatedFile() {
+        if (!this.whatsappResults || this.whatsappResults.length === 0) {
+            alert('Nenhuma validação WhatsApp disponível para download.');
+            return;
+        }
+
+        // Filtrar apenas números válidos do WhatsApp
+        const validNumbers = this.whatsappResults.filter(result => result.exists === true);
+
+        if (validNumbers.length === 0) {
+            alert('Nenhum número WhatsApp válido encontrado.');
+            return;
+        }
+
+        // Recriar CSV apenas com números válidos
+        const lines = this.processedData.split('\n');
+        const header = lines[0];
+        const validLines = [header];
+
+        // Adicionar apenas linhas com números válidos
+        validNumbers.forEach(validResult => {
+            const matchingLine = lines.find(line => line.includes(validResult.number));
+            if (matchingLine) {
+                validLines.push(matchingLine);
+            }
+        });
+
+        const validCsv = validLines.join('\n');
+        const blob = new Blob([validCsv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'contatos_whatsapp_validos.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
     resetInterface() {
         document.getElementById('fileInfo').style.display = 'none';
         document.getElementById('processingSection').style.display = 'none';
@@ -441,8 +527,11 @@ class ContactFormatter {
         document.getElementById('whatsappInfo').style.display = 'none';
         document.getElementById('whatsappConfig').style.display = 'none';
         document.getElementById('whatsappValidation').style.display = 'none';
+        document.getElementById('downloadValidBtn').style.display = 'none';
+        document.getElementById('downloadBtn').style.display = 'block';
         document.getElementById('uploadArea').style.display = 'block';
         document.getElementById('fileInput').value = '';
+        document.querySelector('.download-note').textContent = 'Arquivo limpo e formatado para padrões brasileiros';
 
         this.originalData = null;
         this.processedData = null;
@@ -659,6 +748,16 @@ class ContactFormatter {
 
         // Reabilitar botão
         document.getElementById('startValidationBtn').disabled = false;
+
+        // Reorganizar interface após validação
+        if (stats.valid > 0) {
+            // Mostrar botão de download apenas válidos
+            document.getElementById('downloadValidBtn').style.display = 'block';
+            // Esconder botão de download original para dar destaque aos válidos
+            document.getElementById('downloadBtn').style.display = 'none';
+            // Atualizar nota de download
+            document.querySelector('.download-note').textContent = 'Use "Baixar Apenas WhatsApp Válidos" para melhor resultado';
+        }
 
         // Criar nova versão do CSV com status WhatsApp
         this.addWhatsAppStatusToCSV();
