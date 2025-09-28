@@ -569,7 +569,11 @@ class ContactFormatter {
         }
 
         // Filtrar apenas números válidos do WhatsApp
-        const validNumbers = this.whatsappResults.filter(result => result.exists === true);
+        const validNumbers = this.whatsappResults.filter(result => result.valid === true);
+
+        console.log('Total results:', this.whatsappResults.length);
+        console.log('Valid results:', validNumbers.length);
+        console.log('Sample result:', this.whatsappResults[0]);
 
         if (validNumbers.length === 0) {
             alert('Nenhum número WhatsApp válido encontrado.');
@@ -611,11 +615,9 @@ class ContactFormatter {
         document.getElementById('whatsappInfo').style.display = 'none';
         document.getElementById('whatsappConfig').style.display = 'none';
         document.getElementById('whatsappValidation').style.display = 'none';
-        document.getElementById('downloadValidBtn').style.display = 'none';
-        document.getElementById('downloadBtn').style.display = 'block';
+        document.getElementById('whatsappDownloadArea').style.display = 'none';
         document.getElementById('uploadArea').style.display = 'block';
         document.getElementById('fileInput').value = '';
-        document.querySelector('.download-note').textContent = 'Arquivo limpo e formatado para padrões brasileiros';
 
         this.originalData = null;
         this.processedData = null;
@@ -872,14 +874,9 @@ class ContactFormatter {
         // Reabilitar botão
         document.getElementById('startValidationBtn').disabled = false;
 
-        // Reorganizar interface após validação
+        // Mostrar botão de download WhatsApp válidos
         if (stats.valid > 0) {
-            // Mostrar botão de download apenas válidos
-            document.getElementById('downloadValidBtn').style.display = 'block';
-            // Esconder botão de download original para dar destaque aos válidos
-            document.getElementById('downloadBtn').style.display = 'none';
-            // Atualizar nota de download
-            document.querySelector('.download-note').textContent = 'Use "Baixar Apenas WhatsApp Válidos" para melhor resultado';
+            document.getElementById('whatsappDownloadArea').style.display = 'block';
         }
 
         // Criar nova versão do CSV com status WhatsApp
@@ -994,6 +991,7 @@ class ContactFormatter {
                 }
 
                 document.getElementById('validateWhatsappBtn').disabled = true;
+                testBtn.disabled = false; // Reabilitar para novo teste
                 return;
             }
 
